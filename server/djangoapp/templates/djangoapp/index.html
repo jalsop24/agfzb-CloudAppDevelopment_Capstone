@@ -1,2 +1,14 @@
 
 {% extends "djangoapp/base.html" %}
+
+{% block content %}
+
+<ul>
+{% for dealer in dealers %}
+<li>
+    <a href = "/djangoapp/dealer/{{dealer.id}}">{{dealer.text}}</a>
+</li>
+{% endfor %}
+</ul>
+
+{% endblock %}

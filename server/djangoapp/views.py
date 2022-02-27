@@ -1,18 +1,26 @@
+
+from datetime import datetime
+import logging
+import json
+from multiprocessing import context
+
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render, redirect
-# from .models import related models
-# from .restapis import related methods
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
-from datetime import datetime
-import logging
-import json
+
+# from models import CarDealer, DealerReview
+from djangoapp.restapis import get_dealers_from_cf, get_dealer_reviews_from_cf
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+
+API_URL = "https://265ca22c.eu-gb.apigw.appdomain.cloud/dealership-review"
+DEALER_PATH = "/dealership"
+REVIEWS_PATH = "/review"
 
 # Create your views here.
 
@@ -86,12 +94,28 @@ def get_dealerships(request):
         "current": "Index"
     }
     if request.method == "GET":
-        return render(request, 'djangoapp/index.html', context)
+        url = API_URL + DEALER_PATH
+        # Get dealers from the URL
+        dealerships = get_dealers_from_cf(url)
+        # Concat all dealer's short name
+        dealer_names = [
+            {"id": dealer.id, "text": dealer.short_name} 
+            for dealer in dealerships
+            ]
+        # Return a list of dealer short name
+        context["dealers"] = dealer_names
+
+        return render(request, "djangoapp/index.html", context)
 
 
 # Create a `get_dealer_details` view to render the reviews of a dealer
-# def get_dealer_details(request, dealer_id):
-# ...
+def get_dealer_details(request, dealer_id):
+    if request.method == "GET":
+        context = {}
+        url = API_URL + REVIEWS_PATH
+        reviews = get_dealer_reviews_from_cf(url, dealer_id)
+        context["reviews"] = reviews
+        return render(request, "djangoapp/dealer_details.html", context)
 
 # Create a `add_review` view to submit a review
 # def add_review(request, dealer_id):
