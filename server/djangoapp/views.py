@@ -4,17 +4,18 @@ import logging
 import os
 
 from django.shortcuts import render
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, HttpResponseServerError
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 
-# from models import CarDealer, DealerReview
-from djangoapp.restapis import (get_dealers_from_cf, 
+from .restapis import (
+    get_dealers_from_cf, 
     get_dealer_reviews_from_cf, 
     post_request
     )
+from .models import CarDealer, DealerReview, CarModel
 
 import dotenv
 dotenv.load_dotenv()
@@ -114,6 +115,7 @@ def get_dealer_details(request, dealer_id):
         url = API_URL + REVIEWS_PATH
         reviews = get_dealer_reviews_from_cf(url, dealer_id)
         context["reviews"] = reviews
+        context["dealer_id"] = dealer_id
         return render(request, "djangoapp/dealer_details.html", context)
 
 # Create a `add_review` view to submit a review
@@ -123,22 +125,35 @@ def add_review(request, dealer_id):
         return redirect('djangoapp:register')
 
     if request.method == 'GET':
-        return render(request, "djangoapp/add_review.html", {})
+        cars = CarModel.objects.filter(DealerId = dealer_id ).all()
+        print(cars)
+        return render(request, "djangoapp/add_review.html", {
+            "dealer_id": dealer_id,
+            "cars": cars
+            })
     elif request.method == "POST":
         url = API_URL + REVIEWS_PATH
-        review = {
-            key: request.POST.get(key)
-            for key in [
-                        "name",
-                        "review",
-                        "purchase",
-                        "another",
-                        "purchase_date",
-                        "car_make",
-                        "car_model",
-                        "car_year",
-                        ]
-            }
+        print(f"{request.POST=}")
+
+        review = dict()
+        review["review"] = request.POST["review"]
+        review["purchase_date"] = request.POST["purchase_date"]
         review["dealership"] = dealer_id
+        review["purchase"] = request.POST.get("purchase", None) is not None
+        review["name"] = str(request.user)
+    
+        car: CarModel = CarModel.objects.filter(id=request.POST["car"]).first()
+        # "car_make"
+        # "car_model"
+        # "car_year"
+        # print(f"{car!r}")
+        review["car_make"] = car.Make.Name
+        review["car_model"] = car.Name
+        review["car_year"] = car.Year.strftime("%Y")
+
         response = post_request(url, payload={"review": review})
-        return HttpResponse("post")
+
+        if response.status_code == 200:
+            return redirect('djangoapp:dealer_reviews', dealer_id)
+        else:
+            return HttpResponseServerError()

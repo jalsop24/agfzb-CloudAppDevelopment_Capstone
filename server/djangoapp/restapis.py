@@ -12,8 +12,8 @@ dotenv.load_dotenv()
 # e.g., response = requests.get(url, params=params, headers={'Content-Type': 'application/json'},
 #                                     auth=HTTPBasicAuth('apikey', api_key))
 def get_request(url, params=None, api_key=None):
-    print(params)
-    print("GET from {} ".format(url))
+    # print(params)
+    # print("GET from {} ".format(url))
     try:
         # Call get method of requests library with URL and parameters
         response = requests.get(url, headers={'Content-Type': 'application/json'},
@@ -23,7 +23,7 @@ def get_request(url, params=None, api_key=None):
         print("Network exception occurred")
         return {}
     status_code = response.status_code
-    print(f"With status {status_code}")
+    # print(f"With status {status_code}")
     json_data = {}
     if response.ok:
         json_data = json.loads(response.text)
@@ -31,12 +31,17 @@ def get_request(url, params=None, api_key=None):
 
 # Create a `post_request` to make HTTP POST requests
 # e.g., response = requests.post(url, params=kwargs, json=payload)
-def post_request(url, params, payload):
+def post_request(url, params=None, payload=None):
+    print("POST to {} ".format(url))
+    print(f"{payload=}")
 
     response = requests.post(url, headers={'Content-Type': 'application/json'}, 
         params=params, 
         json=payload)
     
+    status_code = response.status_code
+    print(f"With status {status_code}")
+
     return response
 
 # Create a get_dealers_from_cf method to get dealers from a cloud function
@@ -78,15 +83,15 @@ def get_dealer_reviews_from_cf(url, dealerId):
     if json_result:
         results = [DealerReview(
                     id=review["_id"],
-                    name=review["name"],
-                    text=review["review"],
-                    dealer_id=review["dealership"],
-                    car_make=review["car_make"],
-                    car_model=review["car_model"],
-                    car_year=review["car_year"],
-                    did_purchase=review["purchase"],
-                    purchase_date=review["purchase_date"],
-                    sentiment=analyse_review_sentiments(review["review"])
+                    name=review.get("name"),
+                    text=review.get("review"),
+                    dealer_id=review.get("dealership"),
+                    car_make=review.get("car_make"),
+                    car_model=review.get("car_model"),
+                    car_year=review.get("car_year"),
+                    did_purchase=review.get("purchase"),
+                    purchase_date=review.get("purchase_date"),
+                    sentiment=analyse_review_sentiments(review.get("review"))
                 ) for review in json_result]
     return results
 
