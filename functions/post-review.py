@@ -31,7 +31,7 @@ def main(dict):
         new_doc.dealership = review["dealership"]
         new_doc.review = review["review"]
         new_doc.purchase = review["purchase"]
-        new_doc.another = review["another"]
+        new_doc.another = review.get("another")
         new_doc.purchase_date = review["purchase_date"]
         new_doc.car_make = review["car_make"]
         new_doc.car_model = review["car_model"]
