@@ -1,8 +1,7 @@
 
 from datetime import datetime
 import logging
-import json
-from multiprocessing import context
+import os
 
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse
@@ -12,13 +11,19 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 
 # from models import CarDealer, DealerReview
-from djangoapp.restapis import get_dealers_from_cf, get_dealer_reviews_from_cf, analyse_review_sentiments
+from djangoapp.restapis import (get_dealers_from_cf, 
+    get_dealer_reviews_from_cf, 
+    post_request
+    )
+
+import dotenv
+dotenv.load_dotenv()
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
 
-API_URL = "https://265ca22c.eu-gb.apigw.appdomain.cloud/dealership-review"
+API_URL = os.environ["DEALERSHIP_API_URL"]
 DEALER_PATH = "/dealership"
 REVIEWS_PATH = "/review"
 
@@ -118,6 +123,28 @@ def get_dealer_details(request, dealer_id):
         return render(request, "djangoapp/dealer_details.html", context)
 
 # Create a `add_review` view to submit a review
-# def add_review(request, dealer_id):
-# ...
+def add_review(request, dealer_id):
+    # Check if user authenticated
+    if not request.user.is_authenticated:
+        return redirect('djangoapp:register')
 
+    if request.method == 'GET':
+        return render(request, "djangoapp/add_review.html", {})
+    elif request.method == "POST":
+        url = API_URL + REVIEWS_PATH
+        review = {
+            key: request.POST.get(key)
+            for key in [
+                        "name",
+                        "review",
+                        "purchase",
+                        "another",
+                        "purchase_date",
+                        "car_make",
+                        "car_model",
+                        "car_year",
+                        ]
+            }
+        review["dealership"] = dealer_id
+        response = post_request(url, payload={"review": review})
+        return HttpResponse("post")
