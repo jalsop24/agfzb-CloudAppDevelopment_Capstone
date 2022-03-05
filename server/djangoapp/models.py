@@ -30,6 +30,7 @@ class CarMake(models.Model):
 # - __str__ method to print a car make object
 class CarModel(models.Model):
 
+    Name = models.TextField()
     Make = models.ForeignKey(CarMake, on_delete=models.DO_NOTHING)
     DealerId = models.IntegerField()
     Type = models.CharField(choices=[
