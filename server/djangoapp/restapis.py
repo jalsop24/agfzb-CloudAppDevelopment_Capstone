@@ -1,23 +1,27 @@
 import requests
 import json
+import os
 # import related models here
 from djangoapp.models import CarDealer, DealerReview
 from requests.auth import HTTPBasicAuth
+import dotenv
 
+dotenv.load_dotenv()
 
 # Create a `get_request` to make HTTP GET requests
 # e.g., response = requests.get(url, params=params, headers={'Content-Type': 'application/json'},
 #                                     auth=HTTPBasicAuth('apikey', api_key))
-def get_request(url, **kwargs):
-    print(kwargs)
+def get_request(url, params=None, api_key=None):
+    print(params)
     print("GET from {} ".format(url))
     try:
         # Call get method of requests library with URL and parameters
         response = requests.get(url, headers={'Content-Type': 'application/json'},
-                                    params=kwargs)
+                                    params=params, auth=HTTPBasicAuth("apikey", api_key))
     except:
         # If any error occurs
         print("Network exception occurred")
+        return {}
     status_code = response.status_code
     print(f"With status {status_code}")
     json_data = {}
@@ -61,18 +65,22 @@ def get_dealers_from_cf(url, **kwargs):
 def get_dealer_reviews_from_cf(url, dealerId):
     results = []
     # Call get_request with a URL parameter
-    json_result = get_request(url, dealerId= dealerId)
+    params = {
+        "dealerId": dealerId
+    }
+    json_result = get_request(url, params=params)
     if json_result:
         results = [DealerReview(
                     id=review["_id"],
                     name=review["name"],
-                    review=review["review"],
+                    text=review["review"],
                     dealer_id=review["dealership"],
                     car_make=review["car_make"],
                     car_model=review["car_model"],
                     car_year=review["car_year"],
                     did_purchase=review["purchase"],
-                    purchase_date=review["purchase_date"]
+                    purchase_date=review["purchase_date"],
+                    sentiment=analyse_review_sentiments(review["review"])
                 ) for review in json_result]
     return results
 
@@ -80,6 +88,29 @@ def get_dealer_reviews_from_cf(url, dealerId):
 # def analyze_review_sentiments(text):
 # - Call get_request() with specified arguments
 # - Get the returned sentiment label such as Positive or Negative
+def analyse_review_sentiments(text: str):
+    API_PATH = "/v1/analyze"
 
+    try:
+        url = os.environ["NLU_URL"]
+        api_key = os.environ["NLU_API_KEY"]
+    except KeyError as err:
+        print(err)
+        return None
+    
+    params = {
+        "text": text,
+        "version": "2021-08-01",
+        "features": {
+            "sentiment"
+        },
+        "return_analyzed_text": False
+    }
 
+    result = get_request(url + API_PATH, api_key=api_key, params=params)
 
+    print(result)
+
+    sentiment = result["sentiment"]["document"]["label"] if result.get("sentiment", None) else "neutral"
+
+    return sentiment

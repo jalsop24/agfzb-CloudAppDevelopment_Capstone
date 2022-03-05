@@ -12,7 +12,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 
 # from models import CarDealer, DealerReview
-from djangoapp.restapis import get_dealers_from_cf, get_dealer_reviews_from_cf
+from djangoapp.restapis import get_dealers_from_cf, get_dealer_reviews_from_cf, analyse_review_sentiments
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -114,7 +114,7 @@ def get_dealer_details(request, dealer_id):
         context = {}
         url = API_URL + REVIEWS_PATH
         reviews = get_dealer_reviews_from_cf(url, dealer_id)
-        context["reviews"] = reviews
+        context["reviews"] = [(str(review), review.sentiment.capitalize()) for review in reviews]
         return render(request, "djangoapp/dealer_details.html", context)
 
 # Create a `add_review` view to submit a review

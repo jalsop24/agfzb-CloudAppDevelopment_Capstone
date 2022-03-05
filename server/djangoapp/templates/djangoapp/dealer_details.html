@@ -3,8 +3,8 @@
 {% block content %}
 
 <ul>
-{% for review in reviews %}
-    <li><p>{{review}}</p></li>
+{% for review, sentiment in reviews %}
+    <li><p>[{{sentiment}}] {{review}}</p></li>
 {% empty %}
     <p> There are no reviews for this dealership yet. </p>
 {% endfor %}
